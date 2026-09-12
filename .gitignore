@@ -1,0 +1,26 @@
+.env
+.env.local
+node_modules
+build
+debug
+coverage
+workspace
+sessions
+chats
+.logs
+.tests
+db
+.turbo
+
+!/benchmarks/agbenchmark_config/config.json
+/benchmarks/agbenchmark_config
+
+/apps/browser/lib/scripts.ts
+.next
+
+.DS_Store
+yarn-error.log
+
+# Supabase
+.branches
+.temp

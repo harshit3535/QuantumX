@@ -1,0 +1,6 @@
+{
+  "name": "web.scrapeLinks",
+  "description": "Open a web page and scrape all links found in the html",
+  "arguments": "{ url: string }",
+  "code": "./web.scrapeLinks.js"
+}

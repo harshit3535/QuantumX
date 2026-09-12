@@ -1,0 +1,15 @@
+{
+  "name": "evo-ninja-render-v1",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "openai": "^4.104.0",
+    "ws": "^8.18.3"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "csv.joinByColumn",
+  "description": "Join two CSVs by a shared column name",
+  "arguments": "{ csv1: string, csv2: string, joinColumnName: string, outputFile: string }",
+  "code": "./csv.joinByColumn.js"
+}

@@ -1,0 +1,33 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Read .nvmrc
+      run: echo "NVMRC=$(cat .nvmrc)" >> $GITHUB_OUTPUT
+      id: nvm
+
+    - name: Setup Node.js
+      uses: actions/setup-node@master
+      with:
+        node-version: '${{ steps.nvm.outputs.NVMRC }}'
+
+    - name: Install dependencies
+      run: yarn
+
+    - name: Build
+      run: yarn build
+      env:
+        NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: supabase-anon-key

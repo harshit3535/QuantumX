@@ -1,0 +1,136 @@
+name: benchmarks
+
+on:
+  issue_comment:
+    types: [created, edited]
+
+jobs:
+  run:
+    if: |
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '/workflows/benchmarks')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./evo
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+      with:
+        path: evo
+
+    - name: Is maintainer?
+      run: |
+        exists=$(echo $(grep -Fxcs ${CREATOR} .github/MAINTAINERS))
+        if [ "$exists" == "1" ] ; then
+          echo IS_MAINTAINER=true >> $GITHUB_ENV
+        else
+          echo IS_MAINTAINER=false >> $GITHUB_ENV
+        fi
+      env:
+        CREATOR: ${{github.event.comment.user.login}}
+
+    - name: Is not maintainer...
+      if: env.IS_MAINTAINER == 'false'
+      uses: actions/github-script@0.8.0
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          github.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '${{github.event.comment.user.login}} is not a MAINTAINER. Please see the .github/MAINTAINERS file...'
+          })
+
+    - name: Fail if conditions aren't met...
+      if: |
+        env.IS_MAINTAINER != 'true'
+      run: exit 1
+
+    - name: Get PR branch
+      id: pr-info
+      run: |
+        PR_API_URL="${{ github.event.issue.pull_request.url }}"
+        PR_DATA=$(curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -X GET "$PR_API_URL")
+        PR_REF=$(echo "$PR_DATA" | jq -r .head.ref)
+        echo "PR branch is $PR_REF"
+        echo "::set-output name=branch::${PR_REF}"
+
+    - name: Checkout PR branch
+      uses: actions/checkout@v3
+      with:
+        path: evo
+        ref: ${{ steps.pr-info.outputs.branch }}
+        submodules: 'recursive'
+
+    - name: Get test name if provided
+      run: echo TEST_NAME=$(echo "${{ github.event.comment.body }}" | grep -oP '(?<=/workflows/benchmarks\s)\w+') >> $GITHUB_ENV
+
+    - name: Read .nvmrc into outputs.NVMRC
+      run: echo NVMRC=$(cat .nvmrc) >> "$GITHUB_OUTPUT"
+      id: nvm
+
+    - name: Set up Node.js 18.15
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ steps.nvm.outputs.NVMRC }}
+
+    - name: Install dependencies
+      run: yarn
+
+    - name: Build
+      run: yarn build
+      env:
+        CI: false
+
+    - name: Start Agent Protocol HTTP API
+      run: yarn start:api -c &
+      env:
+        OPENAI_API_KEY: ${{ secrets.BENCHMARK_CI_OPENAI_API_KEY }}
+        GPT_MODEL: "gpt-4-turbo"
+        CONTEXT_WINDOW_TOKENS: 128000
+        MAX_RESPONSE_TOKENS: 4096
+        SERP_API_KEY: ${{ secrets.BENCHMARK_CI_SERP_API_KEY }}
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+
+    - name: Install poetry
+      run: curl -sSL https://install.python-poetry.org | python3 -
+
+    - name: Install agbenchmark
+      run: poetry install
+      working-directory: './evo/benchmarks'
+
+    - name: Benchmarks PR comment
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '[Running Benchmarks](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})'
+          })
+
+    - name: Run benchmarks
+      working-directory: './evo/benchmarks'
+      run: |
+        if [ -n "${{ env.TEST_NAME }}" ]; then
+          echo "Running benchmarks for test: ${{ env.TEST_NAME }}"
+          poetry run agbenchmark --cutoff 300 --test=${{ env.TEST_NAME }}
+        else
+          echo "Running benchmarks with default settings"
+          poetry run agbenchmark --cutoff 300
+        fi
+      env:
+        OPENAI_API_KEY: ${{ secrets.BENCHMARK_CI_OPENAI_API_KEY }}
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: workspaces-debug
+        path: ./workspace
