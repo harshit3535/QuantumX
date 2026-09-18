@@ -151,10 +151,40 @@ async def plan(history: list[dict[str, Any]], current: str) -> dict[str, Any]:
     return _mock_plan(current)
 
 
+def _extract_user_request(prompt: str) -> str:
+    match = re.search(r"(?:^|\n)User request:\s*(.+?)(?:\n(?:Relevant context|Context):|$)", prompt, flags=re.S | re.I)
+    if match:
+        return match.group(1).strip()
+    match = re.search(r"(?:^|\n)Request:\s*(.+?)(?:\n(?:Relevant context|Context):|$)", prompt, flags=re.S | re.I)
+    if match:
+        return match.group(1).strip()
+    return prompt.strip()
+
+
+def _mock_answer(prompt: str, system: str) -> str:
+    """Useful local fallback that never exposes internal prompts to the UI."""
+    user = _extract_user_request(prompt)
+    lower = user.lower().strip()
+
+    if lower in {"hello", "hi", "hey", "hello!", "hi!", "hey!"}:
+        return "Hello! I’m NEXUS. Tell me a goal, ask a question, or give me a task."
+    if "what's your name" in lower or "what is your name" in lower:
+        return "I’m NEXUS, your voice-first task orchestrator."
+    if any(x in lower for x in ["how are you", "kem cho", "કેમ છો"]):
+        return "I’m ready. Give me something to solve, build, research, or discuss."
+    if any(x in lower for x in ["go home", "want to go home", "ઘરે જવું", "મારે ઘરે જવું"]):
+        return "Got it. That sounds like a casual message, not a task. I’m here when you’re ready for the next thing."
+    if "summar" in lower:
+        return "I can summarize text once an LLM provider is configured in Render."
+    if any(x in lower for x in ["python", "javascript", "code", "program", "html", "css"]):
+        return "Code generation needs an LLM provider. Add GEMINI_API_KEY or OPENROUTER_API_KEY in Render Environment Variables."
+    return "I can handle that request. For full AI reasoning, configure Gemini or OpenRouter in Render Environment Variables."
+
+
 async def answer_with_llm(prompt: str, system: str = "You are a helpful specialist agent.") -> str:
     provider = settings.llm_provider
     if provider == "mock" or (provider == "gemini" and not settings.gemini_api_key) or (provider == "openrouter" and not settings.openrouter_api_key):
-        return prompt
+        return _mock_answer(prompt, system)
 
     if provider == "openrouter":
         url = "https://openrouter.ai/api/v1/chat/completions"

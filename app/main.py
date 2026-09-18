@@ -28,11 +28,24 @@ async def index():
 
 @app.get("/api/health")
 async def health():
+    assembly_ready = bool(settings.assemblyai_api_key)
+    llm_ready = (
+        (settings.llm_provider == "gemini" and bool(settings.gemini_api_key))
+        or (settings.llm_provider == "openrouter" and bool(settings.openrouter_api_key))
+        or settings.llm_provider == "mock"
+    )
     return {
         "ok": True,
         "app": settings.app_name,
         "llm_provider": settings.llm_provider,
-        "assemblyai_configured": bool(settings.assemblyai_api_key),
+        "llm_configured": llm_ready,
+        "assemblyai_configured": assembly_ready,
+        "voice_ready": assembly_ready,
+        "voice_supported_languages": ["en"],
+        "setup": {
+            "assemblyai": "Add ASSEMBLYAI_API_KEY in Render Environment Variables for English voice input.",
+            "llm": "Add GEMINI_API_KEY or OPENROUTER_API_KEY in Render Environment Variables for full AI responses."
+        },
     }
 
 

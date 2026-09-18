@@ -5,6 +5,8 @@ let processor = null;
 let sourceNode = null;
 let listening = false;
 let currentLanguage = 'en';
+let voiceMediaStream = null;
+let healthState = null;
 
 const $ = (s) => document.querySelector(s);
 const chat = $('#chat');
@@ -108,60 +110,116 @@ function speak(text){
 
 async function startVoice(){
   if(listening){stopVoice();return;}
-  const media = await navigator.mediaDevices.getUserMedia({audio:true});
+
   const selectedLang=$('#voiceLang').value;
   currentLanguage=selectedLang;
-  const tokenResp = await fetch(`/api/assemblyai/token?language=${encodeURIComponent(selectedLang)}`);
-  const tokenData = await tokenResp.json();
-  if(!tokenResp.ok) throw new Error(tokenData.detail||'AssemblyAI token unavailable');
-  const query = new URLSearchParams({sample_rate:'16000', speech_model:tokenData.speech_model, format_turns:'true', token:tokenData.token});
-  if(tokenData.language_detection) query.set('language_detection','true');
-  socket = new WebSocket(`wss://streaming.assemblyai.com/v3/ws?${query.toString()}`);
-  socket.binaryType='arraybuffer';
-  socket.onopen=async()=>{
-    listening=true; $('#micBtn').classList.add('listening'); $('#voiceStatus').textContent='Listening… speak in English.';
-    audioContext = new AudioContext({sampleRate:16000});
-    sourceNode=audioContext.createMediaStreamSource(media);
-    processor=audioContext.createScriptProcessor(4096,1,1);
-    processor.onaudioprocess=(e)=>{
-      if(!socket || socket.readyState!==1) return;
-      const input=e.inputBuffer.getChannelData(0);
-      const pcm=new Int16Array(input.length);
-      for(let i=0;i<input.length;i++) pcm[i]=Math.max(-1,Math.min(1,input[i]))*0x7fff;
-      socket.send(pcm.buffer);
+  if(selectedLang !== 'en'){
+    $('#voiceStatus').textContent='Hindi/Gujarati are text-first in this demo. Select English for voice input.';
+    return;
+  }
+  if(!healthState?.voice_ready){
+    $('#voiceStatus').textContent='Voice is disabled: add ASSEMBLYAI_API_KEY in Render → Environment.';
+    return;
+  }
+  if(!navigator.mediaDevices?.getUserMedia){
+    $('#voiceStatus').textContent='This browser does not support microphone input.';
+    return;
+  }
+
+  try {
+    voiceMediaStream = await navigator.mediaDevices.getUserMedia({audio:true});
+    const tokenResp = await fetch(`/api/assemblyai/token?language=en`);
+    const tokenData = await tokenResp.json();
+    if(!tokenResp.ok) throw new Error(tokenData.detail||'AssemblyAI token unavailable');
+
+    const query = new URLSearchParams({
+      sample_rate:'16000',
+      speech_model:tokenData.speech_model,
+      format_turns:'true',
+      token:tokenData.token
+    });
+    socket = new WebSocket(`wss://streaming.assemblyai.com/v3/ws?${query.toString()}`);
+    socket.binaryType='arraybuffer';
+
+    socket.onopen=()=>{
+      listening=true;
+      $('#micBtn').classList.add('listening');
+      $('#voiceStatus').textContent='Listening… speak in English.';
+      audioContext = new AudioContext({sampleRate:16000});
+      sourceNode=audioContext.createMediaStreamSource(voiceMediaStream);
+      processor=audioContext.createScriptProcessor(4096,1,1);
+      processor.onaudioprocess=(e)=>{
+        if(!socket || socket.readyState!==1) return;
+        const input=e.inputBuffer.getChannelData(0);
+        const pcm=new Int16Array(input.length);
+        for(let i=0;i<input.length;i++) pcm[i]=Math.max(-1,Math.min(1,input[i]))*0x7fff;
+        socket.send(pcm.buffer);
+      };
+      sourceNode.connect(processor);
+      processor.connect(audioContext.destination);
     };
-    sourceNode.connect(processor); processor.connect(audioContext.destination);
-  };
-  socket.onmessage=(ev)=>{
-    const m=JSON.parse(ev.data);
-    if(m.type==='Turn' && m.end_of_turn && m.transcript){
-      const detected=m.language_code || currentLanguage; stopVoice(); sendMessage('voice',detected,m.transcript);
-    }
-  };
-  socket.onerror=()=>{$('#voiceStatus').textContent='Voice connection error.';stopVoice();};
-  socket.onclose=()=>{if(listening){listening=false;$('#micBtn').classList.remove('listening');}};
+
+    socket.onmessage=(ev)=>{
+      const m=JSON.parse(ev.data);
+      if(m.type==='Turn' && m.end_of_turn && m.transcript){
+        const transcript=m.transcript.trim();
+        stopVoice();
+        if(transcript) sendMessage('voice','en',transcript);
+      }
+    };
+    socket.onerror=()=>{
+      $('#voiceStatus').textContent='Voice connection failed. Check your AssemblyAI key and try again.';
+      stopVoice();
+    };
+    socket.onclose=()=>{
+      if(listening){
+        listening=false;
+        $('#micBtn').classList.remove('listening');
+      }
+    };
+  } catch(e) {
+    stopVoice();
+    $('#voiceStatus').textContent=`Voice unavailable: ${e.message}`;
+  }
 }
 
 function stopVoice(){
-  listening=false; $('#micBtn').classList.remove('listening');
+  listening=false;
+  $('#micBtn').classList.remove('listening');
   if(processor){try{processor.disconnect()}catch{} processor=null}
   if(sourceNode){try{sourceNode.disconnect()}catch{} sourceNode=null}
   if(audioContext){try{audioContext.close()}catch{} audioContext=null}
   if(socket){try{socket.close()}catch{} socket=null}
-  $('#voiceStatus').textContent='Voice stopped.';
+  if(voiceMediaStream){voiceMediaStream.getTracks().forEach(t=>t.stop());voiceMediaStream=null;}
+  if($('#voiceStatus').textContent === 'Listening… speak in English.') $('#voiceStatus').textContent='Ready.';
 }
 
 $('#sendBtn').onclick=()=>sendMessage('text','en');
 $('#newMission').onclick=createSession;
-$('#micBtn').onclick=()=>startVoice().catch(e=>{addMessage('assistant',`Voice setup failed: ${e.message}`);});
+$('#micBtn').onclick=()=>startVoice();
 $('#message').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage('text','en')}});
 
 (async()=>{
-  const r=await fetch('/api/health'); const h=await r.json();
-  $('#systemStatus').textContent=h.ok?'System ready':'Offline';
-  if(!h.assemblyai_configured) $('#voiceStatus').textContent='Text mode ready. Add ASSEMBLYAI_API_KEY for voice.';
-  await refreshSessions();
-  if(!sessionId){
-    const r2=await fetch('/api/sessions',{method:'POST'}); const s=await r2.json(); sessionId=s.session_id; $('#missionTitle').textContent=s.title; addWelcome(); await refreshSessions();
+  try {
+    const r=await fetch('/api/health');
+    healthState=await r.json();
+    $('#systemStatus').textContent=healthState.ok ? (healthState.voice_ready ? 'System ready' : 'Text ready') : 'Offline';
+    $('#voiceStatus').textContent=healthState.voice_ready
+      ? 'Text or voice — English voice replies are enabled.'
+      : 'Text mode ready. Add ASSEMBLYAI_API_KEY in Render for English voice.';
+    $('#micBtn').disabled=!healthState.voice_ready;
+    $('#micBtn').title=healthState.voice_ready ? 'Start English voice input' : 'Add ASSEMBLYAI_API_KEY in Render Environment';
+    await refreshSessions();
+    if(!sessionId){
+      const r2=await fetch('/api/sessions',{method:'POST'});
+      const s=await r2.json();
+      sessionId=s.session_id;
+      $('#missionTitle').textContent=s.title;
+      addWelcome();
+      await refreshSessions();
+    }
+  } catch(e) {
+    $('#systemStatus').textContent='Connection issue';
+    $('#voiceStatus').textContent='Backend health check failed. Refresh the page.';
   }
 })();

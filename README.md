@@ -33,6 +33,50 @@ Set `LLM_PROVIDER` to `gemini`, `openrouter`, or `mock`.
 
 The app uses raw HTTP for the LLM calls, so the provider SDK is not tied to the orchestrator.
 
+
+## Deploy directly to Render (one URL)
+
+This repository is configured as a single Render Web Service. You do **not** need Vercel. Render serves both the FastAPI backend and the `/static` frontend from the same public URL.
+
+### Deploy
+
+1. Push this repository to GitHub.
+2. In Render, choose **New → Web Service** and connect the repository.
+3. Render can use the included `render.yaml`; otherwise use:
+
+```text
+Build Command: pip install -r requirements.txt
+Start Command: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+Health Check: /api/health
+```
+
+4. In Render → **Environment**, add your secret API keys. **Do not commit `.env` or keys to GitHub.**
+
+```env
+ASSEMBLYAI_API_KEY=your_key
+GEMINI_API_KEY=your_key
+```
+
+If using OpenRouter instead of Gemini:
+
+```env
+LLM_PROVIDER=openrouter
+OPENROUTER_API_KEY=your_key
+OPENROUTER_MODEL=google/gemini-2.5-flash
+```
+
+The app then works from one Render URL, for example:
+
+```text
+https://nexus-voice-agent.onrender.com
+```
+
+### Important Render storage note
+
+The default database is SQLite. On Render Free, the service filesystem is ephemeral, so SQLite data can disappear after a restart/redeploy/spin-down. Render documents that Free web services do not have persistent disks. For a hackathon demo this is usually acceptable; for durable multi-user memory, connect the app to a managed Postgres database and set `DATABASE_URL`.
+
+Render Free web services can also spin down after 15 minutes without traffic and take about a minute to wake up.
+
 ## Run
 
 ### 1. Create virtual environment

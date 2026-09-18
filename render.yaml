@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: nexus-voice-agent
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: APP_NAME
+        value: NEXUS
+      - key: LLM_PROVIDER
+        value: gemini
+      - key: ENABLE_CODE_EXECUTION
+        value: "false"
+      - key: MAX_HISTORY_MESSAGES
+        value: "30"
+      - key: ASSEMBLYAI_TOKEN_TTL
+        value: "120"
