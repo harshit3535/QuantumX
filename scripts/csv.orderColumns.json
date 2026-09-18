@@ -1,6 +1,0 @@
-{
-  "name": "csv.orderColumns",
-  "description": "Order the columns of a CSV alphabetically",
-  "arguments": "{ csv: string, outputFile: string }",
-  "code": "./csv.orderColumns.js"
-}

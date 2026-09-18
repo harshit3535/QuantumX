@@ -1,1 +1,0 @@
-return sideLength * 4;
