@@ -1,100 +1,194 @@
-![](./docs/imgs/evo-ninja-logo.png)
+# NEXUS Voice Agent
 
----
+A voice-first multi-agent task orchestration app built around AssemblyAI streaming STT.
 
-[Discord](https://agentcoin.org/discord) | :star: the repo !  
+## What it solves
 
----
+1. **Planner/router instead of one generic chatbot**
+   - A Core Planner turns each user request into a structured execution plan.
+   - Specialist agents are selected from a registry.
+   - Each agent has a capability contract and structured output.
 
-## Welcome!
+2. **Math/code are rendered correctly**
+   - Math is returned as LaTeX for the UI and a natural-language `spoken_response` for TTS.
+   - Code is rendered in a code panel and the voice layer reads a short natural-language summary instead of reading code literally.
 
-To get started using evo.ninja simply head to our [website](https://evo.ninja), or to build and run from source follow these [setup instructions](#setup).
+3. **Persistent multi-turn sessions**
+   - Conversation history, current goal, plans and agent results are stored in SQLite.
+   - New messages continue the same session rather than replacing the previous prompt.
 
-![](./docs/imgs/evo-ninja-app.png)
+4. **Unknown/casual input handling**
+   - Inputs are classified as task, question, conversation, clarification or unknown.
+   - Casual sentences such as “mare ghare javu che” do not trigger an error.
+   - Low-confidence requests fall back to a clarification response.
 
-## Need Help?
+## Language policy
 
-Join our [Discord community](https://agentcoin.org/discord) for support and discussions.
+- English: Universal-3 Pro Streaming STT + browser TTS.
+- Hindi/Gujarati: AssemblyAI Whisper Streaming (`whisper-rt`) + automatic language detection; the app keeps the response text-first and does not auto-TTS these languages by default. AssemblyAI documents Gujarati and Hindi among Whisper Streaming's 99+ supported languages.
 
-[![Join us on Discord](https://invidget.switchblade.xyz/6gk85fetcT)](https://discord.com/invite/6gk85fetcT)
+## LLM providers
 
-If you have questions or encounter issues, please don't hesitate to [create a new issue](https://github.com/agentcoinorg/evo.ninja/issues/new/choose) to get support.
+Set `LLM_PROVIDER` to `gemini`, `openrouter`, or `mock`.
 
-## How it works
+The app uses raw HTTP for the LLM calls, so the provider SDK is not tied to the orchestrator.
 
-What makes evo.ninja special is that it adapts itself in real-time, based on the tasks at hand. Evo utilizes pre-defined agent personas that are tailored to specific domains of tasks. Each iteration of evo's execution loop it will select and adopt the persona that fits the task at hand best.
 
-### Agent Personas
+## Deploy directly to Render (one URL)
 
-| Agent | Expertise |
-|-|-|
-| 📝[Synthesizer](./packages/agents/src/agents/Synthesizer/index.ts) | "Reads text files, analyzing and gathering data and information from text files, generating summaries and reports, and analyzing text." |
-| #️⃣ [Csv Analyst](./packages/agents/src/agents/CsvAnalyst/index.ts) | "Adept at reading CSV files, searching for data, extracting key data points, calculating amounts, and derive insights from CSV files." |
-| 🌐 [Researcher](./packages/agents/src/agents/Researcher/index.ts) | "Searching the internet, comprehending details, and finding information." |
-| 💻 [Developer](./packages/agents/src/agents/Developer/index.ts) | "Architect and build complex software. specialized in python." |
+This repository is configured as a single Render Web Service. You do **not** need Vercel. Render serves both the FastAPI backend and the `/static` frontend from the same public URL.
 
-### Execution Loop
+### Deploy
 
-![](apps/browser/public/arch-diagram-w-logo.png)
+1. Push this repository to GitHub.
+2. In Render, choose **New → Web Service** and connect the repository.
+3. Render can use the included `render.yaml`; otherwise use:
 
-1. **Predict Next Step:** For each iteration of the execution loop, Evo starts by making an informed prediction about what the best-next-step should be.
-2. **Select Best Agent:** Based on this prediction, Evo selects a best-fit agent persona.
-3. **Contextualize Chat History:** Based on the prediction from step 1, and the agent persona in step 2, the complete chat history is "contextualized" and only the most relevant messages are used for the final evaluation step.
-4. **Evaluate and Execute:** A final evaluation step is run to determine what agent function is executed to try and further achieve the user's goal.
+```text
+Build Command: pip install -r requirements.txt
+Start Command: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+Health Check: /api/health
+```
 
-These 4 steps run in a loop continuously until it is determined the user's goal has been achieved.
+4. In Render → **Environment**, add your secret API keys. **Do not commit `.env` or keys to GitHub.**
 
-## Setup
+```env
+ASSEMBLYAI_API_KEY=your_key
+GEMINI_API_KEY=your_key
+```
 
-### Pre-Requisites
-Please install the following:
-- [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
-- [nodejs](https://nodejs.org/en/download/package-manager#alpine-linux)
-- [yarn](https://classic.yarnpkg.com/lang/en/docs/install/#debian-stable)
-- [nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+If using OpenRouter instead of Gemini:
 
-### Installation
-1. Clone the repository 
-    > `git clone https://github.com/agentcoinorg/evo.ninja`
-2. Copy the `.env.template` file and rename it to `.env`.  
-    > `cp .env.template .env`
-3. Find the line that says OPENAI_API_KEY=, and add your unique OpenAI API Key
-`OPENAI_API_KEY=sk-...`
-4. Find the line that says SERP_API_KEY=, and add your unique SERP API Key.
-`SERP_API_KEY=b071...` (see https://serpapi.com)
-5. Use the correct version of Node.JS
-    > `nvm install && nvm use`
-   Install Yarn if the node environment is new
-    > `npm install -g yarn`
-6. Install all dependencies & build project
-    > `yarn && yarn build`
+```env
+LLM_PROVIDER=openrouter
+OPENROUTER_API_KEY=your_key
+OPENROUTER_MODEL=google/gemini-2.5-flash
+```
 
-Now you're ready to go! You can run Evo through CLI or using the UI
+The app then works from one Render URL, for example:
 
-## CLI
+```text
+https://nexus-voice-agent.onrender.com
+```
 
-Run evo in the terminal:
-> `yarn start`
+### Important Render storage note
 
-**Arguments:**
-- `[goal]` - Goal to be achieved
+The default database is SQLite. On Render Free, the service filesystem is ephemeral, so SQLite data can disappear after a restart/redeploy/spin-down. Render documents that Free web services do not have persistent disks. For a hackathon demo this is usually acceptable; for durable multi-user memory, connect the app to a managed Postgres database and set `DATABASE_URL`.
 
-**Options:**
-- `-s, --session <name>` - Name of the session within the `./sessions/...` directory.
-- `-t, --timeout <seconds>` - Specify a timeout, used to terminate the process after a specified number of seconds.
-- `-d, --debug` - Emit debug logs within the `./sessions/${session}/.evo/...` directory.
+Render Free web services can also spin down after 15 minutes without traffic and take about a minute to wake up.
 
-### Session Workspace
-Once the evo.ninja CLI is run, there will be a `./sessions` directory created, with named sessions within it. This is the root directory for the agent, and only files within this directory will be read and written by the agent. There exists a `.evo/` directory within each session workspace, where internal logs are kept, including a `chat.md` file that's provides a markdown version of the agent's output. Use `--debug` to get a raw debug log emitted here as well.
+## Run
 
-## UI
+### 1. Create virtual environment
 
-The UI depends on [Supabase Database](https://supabase.com/). In order to run it locally you must have [Docker Desktop](https://docs.docker.com/get-docker/) installed and running.
+```bash
+python -m venv .venv
+# Windows PowerShell
+.\.venv\Scripts\Activate.ps1
+# macOS/Linux
+source .venv/bin/activate
+```
 
-0. Make sure you've followed installation steps above
-1. Go to `cd apps/browser`
-2. Run `yarn db:start` - This can take up to ~3 minutes, since it will download all the images needed by supabase
-3. Update `.env.local` with the values shown in the output of step 2:
-    - `NEXT_PUBLIC_SUPABASE_URL` will have the value of `API URL`
-    - `SUPABASE_SERVICE_ROLE_KEY` will have the value of `service_role key`
-4. Run the UI with `yarn dev`
+### 2. Install
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Configure
+
+Copy `.env.example` to `.env` and add keys.
+
+Minimum for full voice:
+
+```env
+ASSEMBLYAI_API_KEY=...
+```
+
+For planning:
+
+```env
+LLM_PROVIDER=gemini
+GEMINI_API_KEY=...
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+Or:
+
+```env
+LLM_PROVIDER=openrouter
+OPENROUTER_API_KEY=...
+OPENROUTER_MODEL=google/gemini-2.5-flash
+```
+
+### 4. Run
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Open:
+
+`http://127.0.0.1:8000`
+
+## Important
+
+Code execution is disabled by default. To enable the local Code Agent runner:
+
+```env
+ENABLE_CODE_EXECUTION=true
+```
+
+The runner is intentionally small and is not a hardened security sandbox. Do not expose it to untrusted users.
+
+## Architecture
+
+```text
+User Voice/Text
+      |
+      v
+  Input Layer
+      |
+      +--> AssemblyAI Universal Streaming STT
+      |
+      v
+  CORE ORCHESTRATOR
+      |
+      +--> intent classification
+      +--> plan generation
+      +--> context selection
+      +--> agent dispatch
+      |
+      +-------------------------------+
+      |       |         |              |
+   General   Math     Code         Research
+              |         |
+            SymPy   optional runner
+      |       |         |
+      +-------+---------+
+              |
+          Verifier
+              |
+        Response Envelope
+          /          \
+     Visual UI       TTS text
+```
+
+## Current built-in agents
+
+- `general_agent`
+- `math_agent`
+- `code_agent`
+- `research_agent` (basic no-key fallback; optional Tavily hook can be added)
+- `summarizer_agent`
+- `verifier_agent`
+
+## Notes for hackathon hardening
+
+Before submission, add your final branded UI, demo scenario, public deployment, source links, and a short architecture diagram explaining why AssemblyAI is used for the realtime voice layer.
+
+Official AssemblyAI Voice Agent docs:
+https://www.assemblyai.com/docs/voice-agents/voice-agent-api
+
+Universal Streaming multilingual STT docs:
+https://www.assemblyai.com/docs/universal-streaming/multilingual-transcription
