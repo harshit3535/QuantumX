@@ -1,0 +1,5 @@
+[
+  "tests/test_core.py::test_conversation_does_not_error",
+  "tests/test_core.py::test_history_is_persistent",
+  "tests/test_core.py::test_math_renders_structured_output"
+]

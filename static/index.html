@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NEXUS — Voice Agent</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-orb"></div><div><strong>NEXUS</strong><span>Agent Orchestrator</span></div></div>
+    <button id="newMission" class="new-btn">＋ New mission</button>
+    <div class="sidebar-label">MISSIONS</div>
+    <div id="sessionList" class="session-list"></div>
+    <div class="sidebar-foot">
+      <div class="status-dot" id="statusDot"></div>
+      <div><strong id="systemStatus">Connecting…</strong><span>local control plane</span></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div><span class="eyebrow">VOICE-FIRST TASK OS</span><h1 id="missionTitle">New mission</h1></div>
+      <div class="header-pills"><span class="pill">AssemblyAI STT</span><span class="pill">Multi-agent</span><span class="pill">Memory</span></div>
+    </header>
+
+    <section class="workspace">
+      <div class="chat-panel panel">
+        <div id="chat" class="chat"></div>
+        <div class="composer-wrap">
+          <div class="voice-toolbar"><div id="voiceStatus" class="voice-status">Text or voice — English voice replies are enabled.</div><select id="voiceLang" class="lang-select"><option value="en">English • voice</option><option value="hi">Hindi • text output</option><option value="gu">Gujarati • text output</option></select></div>
+          <div class="composer">
+            <textarea id="message" rows="1" placeholder="Give NEXUS a goal… e.g. ‘Solve x² - 5x + 6 = 0’"></textarea>
+            <button id="micBtn" class="icon-btn" title="Start voice input">●</button>
+            <button id="sendBtn" class="send-btn">Send ↗</button>
+          </div>
+          <div class="composer-hint">Try: “Build a Python CSV analyzer”, “2x + 7 = 15”, or “mare ghare javu che”.</div>
+        </div>
+      </div>
+
+      <aside class="inspector">
+        <div class="panel inspector-card">
+          <div class="card-title"><span>CORE PLAN</span><span id="confidence" class="muted">—</span></div>
+          <div id="planGoal" class="goal">Waiting for a mission…</div>
+          <div id="planSteps" class="plan-steps"><div class="empty-small">Your plan will appear here.</div></div>
+        </div>
+        <div class="panel inspector-card">
+          <div class="card-title"><span>OUTPUT</span><span id="outputType" class="muted">TEXT</span></div>
+          <div id="artifact" class="artifact"><div class="empty-small">Structured math/code results appear here.</div></div>
+        </div>
+        <div class="panel agent-card">
+          <div class="card-title"><span>AGENT REGISTRY</span><span class="muted">6</span></div>
+          <div class="agents">
+            <div><b>◈</b><span>General</span><em>CHAT</em></div>
+            <div><b>∑</b><span>Math</span><em>MATH</em></div>
+            <div><b>&lt;/&gt;</b><span>Code</span><em>CODE</em></div>
+            <div><b>⌕</b><span>Research</span><em>RESEARCH</em></div>
+            <div><b>≡</b><span>Summarizer</span><em>SUMMARY</em></div>
+            <div><b>✓</b><span>Verifier</span><em>VERIFY</em></div>
+          </div>
+        </div>
+      </aside>
+    </section>
+  </main>
+</div>
+<script src="/static/app.js"></script>
+</body>
+</html>
