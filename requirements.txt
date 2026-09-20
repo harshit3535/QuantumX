@@ -1,4 +1,5 @@
 assemblyai>=1.0.0
 python-dotenv>=1.0.0
 requests>=2.32.0
-httpx>=0.19.0requests>=2.32.0
+httpx>=0.19.0
+equests>=2.32.0
