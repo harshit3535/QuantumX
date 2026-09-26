@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QuantumX — Personal AI</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:#0b0d10;color:#f3f4f6}
+.wrap{max-width:1000px;margin:auto;padding:20px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+h1{font-size:24px;margin:0}.badge{font-size:12px;padding:7px 10px;border:1px solid #2a2f37;border-radius:999px;color:#aeb6c2}
+#status{margin:14px 0;color:#9ca3af;font-size:13px}.chat{min-height:60vh;border:1px solid #252a31;border-radius:16px;padding:16px;overflow:auto;background:#0f1216}
+.msg{margin:10px 0;display:flex}.bubble{max-width:88%;padding:12px 14px;border-radius:14px;white-space:pre-wrap;line-height:1.5}.user{justify-content:flex-end}.user .bubble{background:#202733}.assistant .bubble{background:#151a20}
+pre{overflow:auto;background:#080a0d;padding:12px;border-radius:10px}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.composer{display:flex;gap:8px;margin-top:12px}.composer textarea{flex:1;resize:none;min-height:54px;background:#11151a;color:#fff;border:1px solid #2b313a;border-radius:12px;padding:13px;font:inherit}.btn{border:1px solid #2b313a;background:#171c22;color:#fff;border-radius:12px;padding:0 15px;cursor:pointer}.btn:hover{background:#20262e}.danger{color:#fca5a5}.meta{font-size:11px;color:#737b87;margin-top:7px}
+@media(max-width:650px){.wrap{padding:12px}.composer{flex-wrap:wrap}.composer textarea{flex-basis:100%}.btn{height:44px;flex:1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><h1>🧠 QuantumX — Personal AI</h1><div class="badge">AOB • Personal Mode</div></div>
+  <div id="status">Connecting…</div>
+  <div id="chat" class="chat"></div>
+  <div class="composer">
+    <textarea id="input" placeholder="Ask QuantumX anything…"></textarea>
+    <button id="mic" class="btn">🎤 Voice</button>
+    <button id="send" class="btn">Send</button>
+    <button id="clear" class="btn danger">Clear</button>
+  </div>
+</div>
+<script>
+const chat=document.getElementById('chat'), input=document.getElementById('input'), status=document.getElementById('status');
+function add(role, content, meta=''){
+  const row=document.createElement('div'); row.className='msg '+role;
+  const bubble=document.createElement('div'); bubble.className='bubble';
+  if(typeof content==='string') bubble.textContent=content;
+  else content.forEach(s=>{
+    if(s.type==='code'){const pre=document.createElement('pre'); const code=document.createElement('code'); code.textContent=s.content; pre.appendChild(code); bubble.appendChild(pre)}
+    else {const p=document.createElement('div'); p.textContent=s.content; bubble.appendChild(p)}
+  });
+  row.appendChild(bubble); chat.appendChild(row); chat.scrollTop=chat.scrollHeight;
+  if(meta){const m=document.createElement('div');m.className='meta';m.textContent=meta;bubble.appendChild(m)}
+}
+async function send(inputMode='text'){
+  const text=input.value.trim(); if(!text)return;
+  input.value=''; add('user',text); status.textContent='QuantumX is thinking…';
+  try{
+    const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,input_mode:inputMode})});
+    const data=await r.json(); if(!r.ok) throw new Error(data.detail||'Request failed');
+    const agents=(data.metadata?.plan||[]).map(x=>x.agent).join(', ');
+    add('assistant',data.segments||[],agents?'Agents: '+agents:'');
+    if(data.spoken_text && 'speechSynthesis' in window && inputMode==='voice'){
+      speechSynthesis.cancel(); speechSynthesis.speak(new SpeechSynthesisUtterance(data.spoken_text));
+    }
+    status.textContent='Ready';
+  }catch(e){add('assistant','Error: '+e.message);status.textContent='Error';}
+}
+document.getElementById('send').onclick=()=>send();
+input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}});
+document.getElementById('clear').onclick=async()=>{await fetch('/api/history/clear',{method:'POST'});chat.innerHTML='';status.textContent='History cleared';};
+const mic=document.getElementById('mic');
+const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(!SpeechRecognition){mic.disabled=true;mic.textContent='🎤 Not supported'}
+else{
+ const rec=new SpeechRecognition(); rec.lang=navigator.language||'en-US'; rec.interimResults=false; rec.continuous=false;
+ mic.onclick=()=>{status.textContent='Listening…';rec.start()};
+ rec.onresult=e=>{input.value=e.results[0][0].transcript;send('voice')};
+ rec.onerror=e=>status.textContent='Voice error: '+e.error;
+ rec.onend=()=>{if(status.textContent==='Listening…')status.textContent='Ready'};
+}
+fetch('/health').then(r=>r.json()).then(x=>status.textContent='Online • '+x.llm_provider+' • '+(x.model||'model')).catch(()=>status.textContent='Offline');
+</script>
+</body>
+</html>
