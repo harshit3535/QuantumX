@@ -2,70 +2,103 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>NEXUS — Voice Agent</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f1216" />
+  <title>Astra · voice agent orchestrator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Gujarati:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/static/styles.css" />
-  <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']], processEscapes: true },
+      options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 </head>
-<body>
-<div class="app-shell">
-  <aside class="sidebar">
-    <div class="brand"><div class="brand-orb"></div><div><strong>NEXUS</strong><span>Agent Orchestrator</span></div></div>
-    <button id="newMission" class="new-btn">＋ New mission</button>
-    <div class="sidebar-label">MISSIONS</div>
-    <div id="sessionList" class="session-list"></div>
-    <div class="sidebar-foot">
-      <div class="status-dot" id="statusDot"></div>
-      <div><strong id="systemStatus">Connecting…</strong><span>local control plane</span></div>
+<body data-mode="hackathon" data-state="idle">
+<div class="app">
+
+  <aside class="rail" id="rail" aria-label="Missions and settings">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div><strong>Astra</strong><small>agent orchestrator</small></div>
     </div>
+
+    <h2 class="rail-title">Voice engine</h2>
+    <div class="seg wide" role="tablist" aria-label="Voice engine">
+      <button role="tab" class="seg-btn is-on" data-mode="hackathon" type="button" aria-selected="true">AssemblyAI</button>
+      <button role="tab" class="seg-btn" data-mode="personal" type="button" aria-selected="false">Free API</button>
+    </div>
+
+    <button class="btn wide" id="newMission" type="button">New mission</button>
+    <h2 class="rail-title">Missions</h2>
+    <nav class="missions" id="missions"></nav>
+    <div class="rail-foot" id="health"></div>
   </aside>
 
-  <main class="main">
+  <main class="stage">
     <header class="topbar">
-      <div><span class="eyebrow">VOICE-FIRST TASK OS</span><h1 id="missionTitle">New mission</h1></div>
-      <div class="header-pills"><span class="pill">AssemblyAI STT</span><span class="pill">Multi-agent</span><span class="pill">Memory</span></div>
+      <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="Open menu">☰</button>
+      <label class="field"><span>Language</span>
+        <select id="lang" title="Language for voice input and replies">
+          <option value="auto">Auto</option>
+          <option value="en">English</option>
+          <option value="gu">ગુજરાતી</option>
+          <option value="hi">हिन्दी</option>
+        </select>
+      </label>
+      <label class="field"><span>Speak</span>
+        <select id="speakPref" title="Speak replies aloud">
+          <option value="auto">Auto</option>
+          <option value="both">Always</option>
+          <option value="text">Never</option>
+        </select>
+      </label>
+      <span class="sp"></span>
+      <button class="icon-btn orch-btn" id="orchBtn" type="button" aria-label="Show orchestration detail">⛭</button>
     </header>
 
-    <section class="workspace">
-      <div class="chat-panel panel">
-        <div id="chat" class="chat"></div>
-        <div class="composer-wrap">
-          <div class="voice-toolbar"><div id="voiceStatus" class="voice-status">Text or voice — English voice replies are enabled when AssemblyAI is configured.</div><select id="voiceLang" class="lang-select"><option value="en">English • voice</option><option value="hi">Hindi • text output</option><option value="gu">Gujarati • text output</option></select></div>
-          <div class="composer">
-            <textarea id="message" rows="1" placeholder="Give NEXUS a goal… e.g. ‘Solve x² - 5x + 6 = 0’"></textarea>
-            <button id="micBtn" class="icon-btn" title="Start English voice input">●</button>
-            <button id="sendBtn" class="send-btn">Send ↗</button>
-          </div>
-          <div class="composer-hint">Try: “Build a Python CSV analyzer”, “2x + 7 = 15”, or “mare ghare javu che”.</div>
-        </div>
-      </div>
+    <div class="voice-controls">
+      <button class="mic" id="mic" type="button" aria-label="Start voice"><span class="mic-dot"></span><span id="micLabel">Start</span></button>
+      <button class="btn ghost small" id="handsFree" type="button" hidden title="Say the wake word 'Astra' to talk, 'stop' to end">Hands-free</button>
+      <button class="btn ghost small" id="silence" type="button" hidden>Stop speaking</button>
+    </div>
 
-      <aside class="inspector">
-        <div class="panel inspector-card">
-          <div class="card-title"><span>CORE PLAN</span><span id="confidence" class="muted">—</span></div>
-          <div id="planGoal" class="goal">Waiting for a mission…</div>
-          <div id="planSteps" class="plan-steps"><div class="empty-small">Your plan will appear here.</div></div>
-        </div>
-        <div class="panel inspector-card">
-          <div class="card-title"><span>OUTPUT</span><span id="outputType" class="muted">TEXT</span></div>
-          <div id="artifact" class="artifact"><div class="empty-small">Structured math/code results appear here.</div></div>
-        </div>
-        <div class="panel agent-card">
-          <div class="card-title"><span>AGENT REGISTRY</span><span class="muted">6</span></div>
-          <div class="agents">
-            <div><b>◈</b><span>General</span><em>CHAT</em></div>
-            <div><b>∑</b><span>Math</span><em>MATH</em></div>
-            <div><b>&lt;/&gt;</b><span>Code</span><em>CODE</em></div>
-            <div><b>⌕</b><span>Research</span><em>RESEARCH</em></div>
-            <div><b>≡</b><span>Summarizer</span><em>SUMMARY</em></div>
-            <div><b>✓</b><span>Verifier</span><em>VERIFY</em></div>
-          </div>
-        </div>
-      </aside>
+    <section class="voice" aria-live="polite">
+      <div class="orb" id="orb" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="status-pill" id="statusPill"><i class="status-dot" aria-hidden="true"></i><span id="stateWord">Ready</span></div>
+      <p class="live" id="live"></p>
+      <p class="hint" id="hint"></p>
     </section>
+
+    <section class="feed" id="feed" aria-label="Conversation">
+      <div class="chips" id="chips" hidden></div>
+    </section>
+
+    <form class="composer" id="composer" autocomplete="off">
+      <textarea id="message" rows="1" placeholder="Type a message, code, or a math problem…" aria-label="Message"></textarea>
+      <button class="btn primary" id="send" type="submit">Send</button>
+    </form>
   </main>
+
+  <aside class="orch" id="orch" aria-label="Orchestration detail">
+    <h2>Orchestration</h2>
+    <p class="orch-empty" id="orchEmpty">Ask something. The plan and every agent step appear here.</p>
+    <div id="orchBody" hidden>
+      <div class="chips" id="orchChips"></div>
+      <p class="goal" id="orchGoal"></p>
+      <ol class="steps" id="orchSteps"></ol>
+      <p class="why" id="orchWhy"></p>
+    </div>
+  </aside>
 </div>
+
+<div class="scrim" id="scrim" hidden></div>
+<script src="/static/render.js"></script>
+<script src="/static/i18n.js"></script>
+<script src="/static/voice.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>
