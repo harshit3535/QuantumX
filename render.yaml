@@ -1,0 +1,74 @@
+services:
+  - type: web
+    name: astra-quantumx-v28
+    runtime: python
+    plan: free
+    buildCommand: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: RECEPTIONIST_ENABLED
+        value: "true"
+      - key: RECEPTIONIST_BUSINESS_NAME
+        value: "Astra Front Desk"
+      - key: RECEPTIONIST_TIMEZONE
+        value: "Asia/Kolkata"
+      - key: RECEPTIONIST_HOURS
+        value: "Mon-Fri 09:00-17:00"
+      - key: RECEPTIONIST_SLOT_MINUTES
+        value: "30"
+      - key: RECEPTIONIST_MIN_NOTICE_MINUTES
+        value: "30"
+      - key: RECEPTIONIST_CONFIRM_REQUIRED
+        value: "true"
+      - key: MISSION_EVENT_LIMIT
+        value: "500"
+      - key: PYTHON_VERSION
+        value: "3.11.11"
+      # ---- secrets: paste the values in the Render dashboard (never commit them) ----
+      - key: ASSEMBLYAI_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      # ---- settings ----
+      - key: APP_NAME
+        value: ASTRA
+      - key: ASSEMBLYAI_VOICE_AGENT
+        value: "true"
+      - key: ASSEMBLYAI_VOICE
+        value: anna
+      - key: ASSEMBLYAI_VOICE_TOKEN_TTL
+        value: "300"
+      - key: LLM_PROVIDERS
+        value: gemini,groq,openrouter
+      - key: GEMINI_MODEL
+        value: gemini-flash-latest
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-120b
+      - key: OPENROUTER_MODEL
+        value: openai/gpt-oss-120b:free
+      - key: ENABLE_CODE_EXECUTION
+        value: "false"
+      - key: MAX_HISTORY_MESSAGES
+        value: "30"
+      - key: RATE_LIMIT_PER_MIN
+        value: "40"
+      - key: TASK_DIRECTOR_ENABLED
+        value: "true"
+      - key: TASK_REVIEW_ALWAYS
+        value: "true"
+      - key: VOICE_ACK_ENABLED
+        value: "true"
+
+      - key: CLOUD_MEMORY_ENABLED
+        value: "true"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_MEMORY_TABLE
+        value: astra_memory
