@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#07111f" />
+  <meta name="description" content="Astra Resolve — a voice-first AI operator that investigates and verifies real-world digital problems." />
+  <title>Astra Resolve · QuantumX v2.8.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=280" />
+  <script>
+    window.MathJax = { tex: { inlineMath: [['$','$'], ['\\(','\\)']], displayMath: [['$$','$$'], ['\\[','\\]']] }, options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] } };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body data-mode="hackathon" data-state="idle">
+  <div class="bg-grid"></div><div class="bg-glow glow-a"></div><div class="bg-glow glow-b"></div>
+  <div class="shell">
+    <aside class="sidebar" id="rail">
+      <div class="brand">
+        <div class="brand-mark"><span></span></div>
+        <div><strong>astra</strong><small>resolve · v2.8.0</small></div>
+      </div>
+      <div class="side-label">OPERATING MODE</div><div class="scenario-strip"><span>SCENARIO</span><b id="scenarioName">Resolve</b><button id="scenarioBtn" class="scenario-switch">Front Desk</button></div>
+      <div class="mode-card">
+        <button class="mode-option active" data-mode="hackathon"><span class="status-icon live"></span><span><b>AssemblyAI Voice Agent</b><small>Realtime voice · tool bridge</small></span></button>
+        <button class="mode-option" data-mode="personal"><span class="status-icon"></span><span><b>Personal / Free API</b><small>Whisper + Astra AOB</small></span></button>
+      </div>
+      <button class="primary-btn wide" id="newMission"><span>＋</span> New mission</button>
+      <div class="side-row"><span>CHAT HISTORY</span><button class="quiet-icon" id="selftestBtn" title="Run self-test">↗</button></div>
+      <input id="historySearch" class="history-search" placeholder="Search history…" autocomplete="off" /><nav class="missions" id="missions"></nav>
+      <div class="sidebar-footer">
+        <div class="health-line"><i id="healthDot"></i><span id="healthText">Checking systems…</span></div>
+        <div class="mini-meta"><span>QUANTUMX</span><span>VOICE-FIRST AOB</span></div>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <button class="icon-button mobile-only" id="menuBtn" aria-label="Open navigation">☰</button>
+        <div class="crumb"><span>MISSION</span><b id="missionTitle">New mission</b></div>
+        <div class="top-actions">
+          <button class="chip-toggle" id="langBtn">AUTO</button>
+          <button class="chip-toggle" id="themeBtn" title="Toggle theme">◐</button>
+          <button class="icon-button" id="orchBtn" title="Mission telemetry">⌘</button>
+        </div>
+      </header>
+
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="pulse-dot"></span> VOICE-TO-RESOLUTION AGENT</div>
+          <h1>Speak the problem.<br><em>Astra resolves it.</em></h1>
+          <p>One voice session to understand, investigate, act through safe tools, and explain what was verified.</p>
+        </div>
+        <div class="hero-badge"><span>ASSEMBLYAI</span><b>VOICE AGENT</b></div><div class="scenario-deck"><button class="scenario-card active" data-scenario="resolve"><b>Resolve</b><small>Investigate · act · verify</small></button><button class="scenario-card" data-scenario="receptionist"><b>Front Desk</b><small>Book · lookup · messages</small></button><button class="scenario-card" data-scenario="floorops"><b>FloorOps</b><small>Stock · safety · incidents</small></button></div>
+      </section>
+
+      <section class="console-card">
+        <div class="console-top">
+          <div class="system-state"><span class="state-ring" id="stateRing"></span><span id="stateWord">READY</span></div>
+          <div class="console-stat"><span>VOICE</span><b id="voiceQuality">AssemblyAI</b></div>
+          <div class="console-stat hide-mobile"><span>TOOLS</span><b id="toolCount">3 enabled</b></div>
+          <div class="console-stat hide-mobile"><span>LATENCY</span><b id="latencyStat">—</b></div>
+        </div>
+        <div class="voice-stage">
+          <div class="audio-visualizer" id="visualizer"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            <div class="core"><div class="core-ring ring-1"></div><div class="core-ring ring-2"></div><div class="core-center"><span class="core-logo">A</span></div></div>
+          </div>
+          <div class="voice-caption"><span id="live">Tap the microphone and describe a real problem.</span></div>
+          <div class="voice-controls">
+            <button class="voice-main" id="mic"><span class="mic-symbol">●</span><span id="micLabel">START SESSION</span></button>
+            <button class="secondary-btn" id="silence" hidden>Stop voice</button>
+          </div>
+        </div>
+        <div class="transcript-strip" id="transcriptStrip"><span class="strip-label">LIVE TRANSCRIPT</span><span id="transcript">Waiting for your voice…</span></div>
+      </section>
+
+      <section class="task-contract lane-card">
+        <div class="lane-head"><span>TASK CONTRACT</span><b id="taskTeam">GENERAL TEAM</b></div>
+        <div class="contract-grid">
+          <div><span>OBJECTIVE</span><b id="taskObjective">Give Astra a real outcome to complete.</b></div>
+          <div><span>DELIVERABLE</span><b id="taskDeliverable">A verified result.</b></div>
+          <div><span>DONE WHEN</span><b id="taskDone">Success criteria are satisfied.</b></div>
+        </div>
+      </section>
+
+      <section class="mission-lanes">
+        <div class="lane-card mission-card">
+          <div class="lane-head"><span>MISSION</span><b id="missionStatus">Idle</b></div>
+          <div class="mission-flow" id="missionFlow">
+            <div class="flow-step active"><span>01</span><b>Listen</b><small>Capture the request</small></div>
+            <div class="flow-line"></div>
+            <div class="flow-step"><span>02</span><b>Assign</b><small>Cast the right team</small></div>
+            <div class="flow-line"></div>
+            <div class="flow-step"><span>03</span><b>Work</b><small>Run real agents & tools</small></div>
+            <div class="flow-line"></div>
+            <div class="flow-step"><span>04</span><b>Verify</b><small>Test against the done-bar</small></div>
+            <div class="flow-line"></div>
+            <div class="flow-step"><span>05</span><b>Deliver</b><small>Artifact, evidence or action</small></div>
+          </div>
+        </div>
+        <div class="lane-card toolbox-card">
+          <div class="lane-head"><span>TOOLBOX</span><b>ALLOWLISTED</b></div>
+          <div class="tool-grid" id="toolGrid">
+            <div class="tool-pill active"><i></i><span>Voice Agent</span></div>
+            <div class="tool-pill"><i></i><span>Web Search</span></div>
+            <div class="tool-pill"><i></i><span>URL Health</span></div>
+          </div>
+          <p class="tool-note">Astra can inspect public information. External mutations are intentionally gated in later phases.</p>
+        </div>
+      </section>
+        <section class="lane-card outcome-card"><div class="lane-head"><span>OUTCOME</span><b id="outcomeState">READY</b></div><div class="outcome-body" id="outcomeBody">Your verified result will appear here after the mission runs.</div><div class="evidence-mini" id="evidenceMini"></div></section>
+
+      <section class="feed-shell">
+        <div class="feed-head"><span>CONVERSATION</span><div><button class="text-btn" id="clearMission">Clear</button></div></div>
+        <div class="feed" id="feed"></div>
+        <div class="composer-area" id="composerArea">
+          <form class="composer" id="composer" autocomplete="off">
+            <textarea id="message" rows="1" placeholder="Type a request for Astra…" aria-label="Message"></textarea>
+            <button class="send-btn" id="send" aria-label="Send" type="submit">↗</button>
+          </form>
+          <div class="composer-tools"><button id="webBtn" class="tool-link" type="button">⌁ Web</button><button id="thinkBtn" class="tool-link" type="button">✦ Think</button><span>Text mode uses the same Astra orchestration brain.</span></div>
+        </div>
+      </section>
+      <div class="mobile-note">Astra can make mistakes. Verify important information.</div>
+    </main>
+
+    <aside class="telemetry" id="orch">
+      <div class="telemetry-head"><div><span>LIVE TELEMETRY</span><h2>Mission control</h2></div><button class="icon-button mobile-only" id="closeTelemetry">×</button></div>
+      <div class="telemetry-summary">
+        <div class="summary-primary"><span id="missionPhase">READY</span><b id="missionElapsed">00:00</b></div>
+        <p id="missionGoal">Give Astra a problem worth solving.</p>
+      </div>
+      <div class="trace-section"><div class="trace-title"><span>AGENTS</span><b id="agentBadge">0 active</b></div><div class="agent-list" id="agentList"><div class="agent-empty">No agent run yet.</div></div></div>
+      <div class="trace-section"><div class="trace-title"><span>TEAM ASSIGNMENT</span><b id="assignmentBadge">0 roles</b></div><div class="assignment-list" id="assignmentList"><div class="agent-empty">Astra assigns roles when a mission starts.</div></div></div><div class="trace-section"><div class="trace-title"><span>EVENT STREAM</span><b id="eventBadge">0 events</b></div><div class="event-stream" id="eventStream"><div class="event-empty">Mission events will appear here.</div></div></div>
+      <div class="trace-section"><div class="trace-title"><span>EVIDENCE CHAIN</span><b id="evidenceCount">0</b></div><div class="evidence-list" id="evidenceList"><div class="agent-empty">Evidence appears when Astra verifies something.</div></div></div><div class="frontdesk-panel" id="flooropsPanel" hidden><div class="trace-title"><span>FLOOROPS</span><b id="floorStatus">READY</b></div><div class="frontdesk-kpis"><div><span>INVENTORY</span><b id="floorInventoryCount">—</b></div><div><span>OPEN INCIDENTS</span><b id="floorIncidentCount">—</b></div></div><div class="booking-list" id="floorIncidentList"><div class="agent-empty">Floor incidents will appear here.</div></div></div><div class="frontdesk-panel" id="frontdeskPanel" hidden><div class="trace-title"><span>FRONT DESK</span><b id="frontDeskStatus">READY</b></div><div class="frontdesk-kpis"><div><span>BUSINESS</span><b id="frontDeskBusiness">Astra Front Desk</b></div><div><span>HOURS</span><b id="frontDeskHours">—</b></div></div><div class="booking-list" id="bookingList"><div class="agent-empty">Confirmed appointments will appear here.</div></div></div><div class="replay-actions"><button class="secondary-btn" id="replayBtn">Replay mission</button><button class="secondary-btn" id="reportBtn">Mission report</button><button class="secondary-btn" id="frontDeskBtn">Open Front Desk</button></div><div class="telemetry-footer"><span>CONFIRMATION GATED · AUDIT TRAIL ON</span><i></i></div>
+    </aside>
+  </div>
+
+  <div class="scrim" id="scrim" hidden></div>
+<div class="approval-modal" id="approvalModal" hidden><div class="approval-card"><div class="approval-kicker">ACTION READY</div><h3 id="approvalTitle">Confirm action</h3><p id="approvalText">Astra is ready to perform this action.</p><div class="approval-actions"><button class="secondary-btn" id="approvalCancel">Cancel</button><button class="primary-btn" id="approvalConfirm">Confirm</button></div></div></div><div class="toast" id="toast"></div>
+  <script src="/static/render.js?v=280"></script>
+  <script src="/static/i18n.js?v=280"></script>
+  <script src="/static/voice.js?v=280"></script>
+  <script src="/static/app.js?v=280"></script>
+</body>
+</html>
